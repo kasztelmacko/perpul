@@ -1,10 +1,14 @@
 import React from 'react';
 import Navbar from './Navbar';
 import ImageUploadForm from './ImageUpload';
+import Intro from './Intro';
+import FAQSection from './FAQ';
+import Footer from './Footer';
+
 
 
 const MainContent = () => (
-    <main className="relative h-screen w-full overflow-hidden bg-black">
+    <main className="relative h-screen w-full overflow-hidden">
         <Navbar />
       <div className="absolute inset-0 diff">
         <div className="diff-item-1">
@@ -22,10 +26,9 @@ const MainContent = () => (
         <div className="diff-resizer z-20"></div>
       </div>
 
-      <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 z-10">
+      <div className="absolute inset-x-0 top-[calc(50%-5rem)] transform -translate-y-1/2 z-10">
         <ImageUploadForm />
       </div>
-
 
       <div className="absolute bottom-0 left-0 right-0 h-1/6 bg-black"></div>
       <div className="absolute inset-0 flex flex-col justify-end">
@@ -36,12 +39,18 @@ const MainContent = () => (
           </h1>
         </div>
       </div>
+
     </main>
   );
 
 const LandingPage = () => (
-  <div className="bg-gray-100 min-h-screen">
+  <div className="min-h-screen">
     <MainContent />
+    <Intro />
+    <div id="faq-section">
+      <FAQSection />
+    </div>
+    <Footer />
   </div>
 );
 
