@@ -1,12 +1,16 @@
 import numpy as np
 from PIL import Image, ImageFilter
 from sklearn.cluster import KMeans
+from skimage import measure, morphology, color
 from skimage.color import rgb2lab, lab2rgb
 from skimage.restoration import denoise_tv_bregman
+from scipy import ndimage
 import requests
 from io import BytesIO
 import os
 import cv2
+import logging
+from collections import deque
 from app.database import save_image, update_image_entry, get_entry
 
 class ImageProcessor:
@@ -67,45 +71,39 @@ class ColorClusterer:
     def process_clusters_to_rgb(self, clustered_image):
         return lab2rgb(clustered_image)
     
-    def closing_morphology(self, clustered_image, kernel_size=(5, 5)):
-        kernel = np.ones(kernel_size, np.uint8)
-        closed_image = cv2.morphologyEx(clustered_image, cv2.MORPH_CLOSE, kernel)
-        return closed_image
 
 class FacetProcessor:
-    def __init__(self, clustered_image, labels):
+    def __init__(self, clustered_image, n_colors):
         self.clustered_image = clustered_image
-        self.labels = labels
+        self.n_colors = n_colors
 
-    def remove_and_fill_small_facets(self, min_size=100):
-        unique_labels, counts = np.unique(self.labels, return_counts=True)
-        large_clusters = unique_labels[counts >= min_size]
-        mask = np.isin(self.labels, large_clusters).reshape(self.clustered_image.shape[:2])
-        filtered_image = np.zeros_like(self.clustered_image)
-        filtered_image[mask] = self.clustered_image[mask]
+    def remove_and_fill_small_facets(self, min_size):
+        if self.clustered_image.dtype != np.uint8:
+            image = (self.clustered_image * 255).astype(np.uint8)
+        else:
+            image = self.clustered_image.copy()
 
-        small_cluster_indices = np.where(~mask)
-        for y, x in zip(*small_cluster_indices):
-            nearest_large_cluster_pixel = self.find_nearest_large_cluster_pixel(mask, y, x)
-            filtered_image[y, x] = nearest_large_cluster_pixel
+        kernel_size = int(np.sqrt(min_size))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
 
-        return filtered_image
+        closed_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
-    def find_nearest_large_cluster_pixel(self, mask, y, x):
-        height, width = mask.shape
-        min_dist = float('inf')
-        nearest_pixel = self.clustered_image[y, x]
+        print(f"Morphological closing applied with kernel size: {kernel_size}x{kernel_size}")
 
-        for dy in range(-1, 2):
-            for dx in range(-1, 2):
-                ny, nx = y + dy, x + dx
-                if 0 <= ny < height and 0 <= nx < width and mask[ny, nx]:
-                    dist = abs(dy) + abs(dx)
-                    if dist < min_dist:
-                        min_dist = dist
-                        nearest_pixel = self.clustered_image[ny, nx]
+        pixels = closed_image.reshape(-1, 3)
 
-        return nearest_pixel
+        kmeans = KMeans(n_clusters=self.n_colors, random_state=42)
+        kmeans.fit(pixels)
+
+        quantized_pixels = kmeans.cluster_centers_[kmeans.labels_]
+        quantized_image = quantized_pixels.reshape(closed_image.shape).astype(np.uint8)
+
+        print(f"Color quantization applied to reduce colors to {self.n_colors}")
+
+        if self.clustered_image.dtype != np.uint8:
+            quantized_image = quantized_image.astype(self.clustered_image.dtype) / 255.0
+
+        return quantized_image
 
 class ClusteredImageCreator:
     def __init__(self, image_path=None, image_url=None, n_clusters=16, blur_radius=4, denoise_weight=0.1, min_size=300, file_name=None, entry_id=None, file_options=None):
@@ -133,12 +131,11 @@ class ClusteredImageCreator:
         # Cluster the image
         color_clusterer = ColorClusterer(processed_image_array)
         color_clusterer.cluster_image(self.n_clusters)
+
         clustered_lab_image = color_clusterer.map_clusters_to_image()
         self.clustered_image = color_clusterer.process_clusters_to_rgb(clustered_lab_image)
-        self.clustered_image - color_clusterer.closing_morphology(self.clustered_image)
 
-        # Process facets
-        facet_processor = FacetProcessor(self.clustered_image, color_clusterer.labels)
+        facet_processor = FacetProcessor(self.clustered_image, n_colors=self.n_clusters)
         self.clustered_image = facet_processor.remove_and_fill_small_facets(self.min_size)
 
         # Save and update image

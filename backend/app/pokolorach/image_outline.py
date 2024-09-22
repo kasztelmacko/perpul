@@ -18,7 +18,7 @@ class ImagePreprocessor:
         return image
 
 class ImageOutline:
-    def __init__(self, image, line_size=3, blur_value=3, area_threshold_factor=10):
+    def __init__(self, image, line_size=3, blur_value=3, area_threshold_factor=150):
         self.image = image
         self.line_size = line_size
         self.blur_value = blur_value
@@ -197,7 +197,7 @@ class ImageEdgeProcessor:
         return cv2.bitwise_and(image, image, mask=mask)
 
 class OutlineCreator:
-    def __init__(self, file_name=None, entry_id=None, image=None, line_size=3, blur_value=3, filter_size=4, area_threshold_factor=10,
+    def __init__(self, file_name=None, entry_id=None, image=None, line_size=3, blur_value=3, filter_size=4, area_threshold_factor=150,
                  outline_color=(162, 162, 162), font_scale_small=0.2, font_scale_medium=0.3,
                  font_scale_large=0.5, thickness=1, min_size=500, file_options=None):
         self.file_name = file_name

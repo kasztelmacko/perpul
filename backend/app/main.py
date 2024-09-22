@@ -4,10 +4,14 @@ from fastapi.responses import  JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from PIL import Image
+import numpy as np
 import io
 import os
+import json
 import asyncio
 import uuid
+import logging
+import traceback
 from aioredis import Redis, from_url
 from app.database import supabase, save_image, save_entry, remove_image
 from app.pokolorach.process_image import process_image
@@ -15,7 +19,7 @@ from app.pokolorach.process_image import process_image
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Add your React app's URL
+    allow_origins=["http://localhost:3000", "http://192.168.56.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +63,8 @@ async def upload(file: UploadFile = File(...)):
 
         return JSONResponse(content={
             "status": "complete",
-            "image_url": image_url
+            "image_url": image_url,
+            "unique_filename": unique_filename
         })
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -74,6 +79,15 @@ async def process():
         entry_id = await redis.get("entry_id")
         content_type = await redis.get("content_type")
 
+        def serialize_numpy(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return obj
+
         if not image_url:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
@@ -86,32 +100,59 @@ async def process():
             blur_radius=1
         )
 
-        await redis.set("label_color_mapping", str(label_color_mapping))
-
         asyncio.create_task(remove_image("cluster_image", filename))
         asyncio.create_task(remove_image("outline_image", filename))
 
-        return JSONResponse(content={
+        serializable_mapping = {str(k): [serialize_numpy(i) for i in v] for k, v in label_color_mapping.items()}
+
+
+        response_data = {
             "status": "complete",
             "img_cluster_url": img_cluster_url,
-            "img_outline_url": img_outline_url
-        })
+            "img_outline_url": img_outline_url,
+            "label_color_mapping": serializable_mapping
+        }
+
+        json_data = json.dumps(response_data)
+
+        return JSONResponse(content=json.loads(json_data))
+    except json.JSONDecodeError as json_error:
+        logging.error(f"JSON serialization error: {str(json_error)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"JSON serialization error: {str(json_error)}")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        logging.error(f"Error in /process: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
+    
 
-@app.get("/get-featured-image")
-async def get_featured_image(url: str = Query(..., description="URL of the image")):
-    return {"url": url}
-
-@app.get("/generate_palette")
-async def generate_palette():
+@app.get("/painting/{unique_filename}")
+async def get_painting(unique_filename: str):
     try:
-        label_color_mapping_str = await redis.get("label_color_mapping")
-        if not label_color_mapping_str:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Palette not found")
+        image_url = await redis.get("image_url")
+        filename = await redis.get("filename")
 
-        label_color_mapping = eval(label_color_mapping_str)
+        if not image_url or not filename:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Painting data not found in Redis")
 
-        return label_color_mapping
+        stored_filename_without_ext = filename.rsplit('.', 1)[0]
+
+        if stored_filename_without_ext != unique_filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Filename mismatch. Stored: {stored_filename_without_ext}, Requested: {unique_filename}"
+            )
+
+        painting_data = {
+            "img_url": image_url,
+            "img_name": filename,
+        }
+        return painting_data
+    except HTTPException as he:
+        print(f"HTTPException in get_painting: {he.detail}")
+        raise he
     except Exception as e:
+        print(f"Unexpected error in get_painting: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+

@@ -17,7 +17,7 @@ def process_image(
     font_scale_medium=0.3,
     font_scale_large=0.5,
     thickness=1,
-    min_size=500,
+    min_size=200,
     denoise_weight=1
 ):
     """
