@@ -112,7 +112,18 @@ class ImageOutline:
     def getLabelLoc(self, mat, region):
         x_center = np.mean(region['x']).astype(int)
         y_center = np.mean(region['y']).astype(int)
-        return {'value': region['value'], 'x': x_center, 'y': y_center}
+        
+        x_min, x_max = np.min(region['x']), np.max(region['x'])
+        y_min, y_max = np.min(region['y']), np.max(region['y'])
+        
+        label_width = 20
+        label_height = 20
+        
+        if (x_center - label_width // 2 >= x_min and x_center + label_width // 2 <= x_max and
+            y_center - label_height // 2 >= y_min and y_center + label_height // 2 <= y_max):
+            return {'value': region['value'], 'x': x_center, 'y': y_center}
+        else:
+            return None
 
     def getBelowValue(self, mat, region):
         y_max = mat.shape[0] - 1
@@ -177,9 +188,10 @@ class ImageAnnotator:
             font_scale = font_scale_large
 
         for label_info in label_locs:
-            position = (label_info['x'], label_info['y'])
-            cv2.putText(image, str(label_info['value']), position,
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+            if label_info is not None:
+                position = (label_info['x'], label_info['y'])
+                cv2.putText(image, str(label_info['value']), position,
+                            cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
         
         return image
 
