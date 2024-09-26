@@ -1,6 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const PaintingOptions = ({ processedImages }) => {
+const PaintingOptions = ({ processedImages, handleProcess, processing }) => {
+  const [isProcessed, setIsProcessed] = useState(false);
+
+  const handleProcessClick = async () => {
+    await handleProcess();
+    setIsProcessed(true);
+  };
+
   return (
     <div className="w-1/3">
       <h1 className="text-3xl font-bold mb-4">Paint by Numbers kit</h1>
@@ -34,10 +41,28 @@ const PaintingOptions = ({ processedImages }) => {
         </div>
       )}
       
-      <button className="w-full bg-black text-white py-3 rounded-lg text-lg font-semibold 
-                         hover:bg-gray-800 transition duration-300">
-        Add to cart
-      </button>
+      {!processing && !isProcessed && (
+        <button
+          onClick={handleProcessClick}
+          className="w-full bg-black text-white py-3 rounded-lg text-lg font-semibold 
+                     hover:bg-gray-800 transition duration-300"
+        >
+          Process
+        </button>
+      )}
+      {processing && (
+        <div className="w-full bg-black text-white py-3 rounded-lg text-lg font-semibold text-center">
+          <span className="loading loading-infinity loading-md text-white"></span>
+        </div>
+      )}
+      {!processing && isProcessed && (
+        <button
+          className="w-full bg-green-500 text-white py-3 rounded-lg text-lg font-semibold 
+                     hover:bg-green-600 transition duration-300"
+        >
+          Add to cart
+        </button>
+      )}
     </div>
   );
 };

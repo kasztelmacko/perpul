@@ -49,42 +49,42 @@ const ImageUploadForm = () => {
     }
   };
 
-return (
-      <form onSubmit={handleSubmit } className="bg-white shadow-lg mx-auto max-w-6xl flex items-center justify-between p-2 rounded-lg">
-        <div className="flex-1 px-2">
-          <label htmlFor="file-upload" className="block text-xs text-gray-500 mb-1">Upload Image</label>
-          <input
-            id="file-upload"
-            name="file-upload"
-            type="file"
-            onChange={handleFileChange}
-            accept="image/*"
-            className="w-full text-sm text-gray-500 cursor-pointer
-                       file:mr-4 file:py-2 file:px-4
-                       file:rounded-md file:border-0
-                       file:text-sm file:font-semibold
-                       file:bg-black file:text-white
-                       hover:file:bg-grey-700"
-          />
-        </div>
-        <div className="flex-1 px-2 border-l border-gray-200">
-          <label htmlFor="image-type" className="block text-xs text-gray-500 mb-1">Image Type</label>
-          <select
-            id="image-type"
-            name="image-type"
-            onChange={handleTypeChange}
-            value={imageType}
-            className="w-full text-sm border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-black"
-          >
-            <option value="portrait">Portrait</option>
-            <option value="animal">Animal</option>
-            <option value="landscape">Landscape</option>
-            <option value="abstract">Abstract</option>
-          </select>
-        </div>
-        <button
+  return (
+    <form onSubmit={handleSubmit} className="w-full lg:w-full md:w-11/12 sm:w-10/12 bg-white shadow-lg mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between p-4 rounded-lg space-y-4 sm:space-y-0">
+      <div className="w-full sm:flex-1 sm:px-2">
+        <label htmlFor="file-upload" className="block text-xs text-gray-500 mb-1">Upload Image</label>
+        <input
+          id="file-upload"
+          name="file-upload"
+          type="file"
+          onChange={handleFileChange}
+          accept="image/*"
+          className="w-full text-sm text-gray-500 cursor-pointer
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-md file:border-0
+                     file:text-sm file:font-semibold
+                     file:bg-black file:text-white
+                     hover:file:bg-grey-700"
+        />
+      </div>
+      <div className="w-full sm:flex-1 sm:px-2 sm:border-l sm:border-gray-200">
+        <label htmlFor="image-type" className="block text-xs text-gray-500 mb-1">Image Type</label>
+        <select
+          id="image-type"
+          name="image-type"
+          onChange={handleTypeChange}
+          value={imageType}
+          className="w-full text-sm border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="portrait">Portrait</option>
+          <option value="animal">Animal</option>
+          <option value="landscape">Landscape</option>
+          <option value="abstract">Abstract</option>
+        </select>
+      </div>
+      <button
         type="submit"
-        className="bg-black text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition duration-300 ml-2 min-w-[100px]"
+        className="w-full sm:w-auto bg-black text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition duration-300 sm:ml-2 min-w-[100px]"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -93,7 +93,7 @@ return (
           'Upload →'
         )}
       </button>
-      </form>
+    </form>
   );
 };
 

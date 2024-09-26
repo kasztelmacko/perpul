@@ -50,17 +50,23 @@ const PaintingDetails = () => {
   if (!painting) return <div>No painting found</div>;
 
   return (
-    <div className="container mx-auto mt-8">
-      <div className="flex flex-row space-x-8">
-        <PaintingPreview 
-          painting={painting}
-          displayedImage={displayedImage}
-          processing={processing}
-          processedImages={processedImages}
-          handleProcess={handleProcess}
-          handlePreviewClick={handlePreviewClick}
-        />
-        <PaintingOptions processedImages={processedImages} />
+    <div className="container mx-auto mt-8 px-4">
+      <div className="flex flex-col lg:flex-row lg:space-x-8 space-y-8 lg:space-y-0">
+        <div className="w-full lg:w-2/3">
+          <PaintingPreview 
+            painting={painting}
+            displayedImage={displayedImage}
+            processedImages={processedImages}
+            handlePreviewClick={handlePreviewClick}
+          />
+        </div>
+        <div className="w-full lg:w-1/3">
+          <PaintingOptions 
+            processedImages={processedImages} 
+            handleProcess={handleProcess} 
+            processing={processing} 
+          />
+        </div>
       </div>
     </div>
   );
